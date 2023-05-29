@@ -15,19 +15,22 @@ logger = logging.getLogger(__name__)
 class ManifestDataset:
     def __init__(self, manifest):
         with open(manifest, "r") as fin:
-            self.root = pathlib.Path(fin.readline().strip())
-            self.files = [x.strip().split()[0] for x in fin.readlines()]
-
+            # self.root = pathlib.Path(fin.readline().strip())
+            self.files = [x.strip().split('|')[0] for x in fin.readlines()]
+        # print(self.root)
         logger.info(
-            f"Init dataset with root in {self.root}, containing {len(self.files)} files"
+            f"Init dataset with root in , containing {len(self.files)} files"
         )
 
     def __len__(self):
         return len(self.files)
 
     def __getitem__(self, k):
-        path = self.root / self.files[k]
+        path = self.files[k]
         data, sr = torchaudio.load(str(path))
-
-        assert sr == 16_000
-        return data.squeeze(0), path.with_suffix("").name
+        # data = encoder.maybe_resample(data, sr)
+        data = torchaudio.functional.resample(
+            data, sr, 16_000
+        )
+        # assert sr == 16_000
+        return data.squeeze(0), path

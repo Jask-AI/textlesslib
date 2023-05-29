@@ -5,7 +5,7 @@
 
 
 import torch.distributed as distr
-import torch
+import torch,time
 import pathlib
 from data_handler import ManifestDataset
 from distributed import init_distributed_context
@@ -25,7 +25,7 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--vocab_size",
-        default=100,
+        default=500,
         type=int,
         help="Quantization codebook vocabulary size",
     )
@@ -99,9 +99,9 @@ def transcribe(args, rank, world_size):
         "durations": None
         if not args.durations
         else open(worker_shard_path(args.output, "durations", rank), "w"),
-        "f0s": None
+        "f0": None
         if not args.f0s
-        else open(worker_shard_path(args.output, "f0s", rank), "w"),
+        else open(worker_shard_path(args.output, "f0", rank), "w"),
     }
 
     # DistributedSampler will pad the dataloader to be divisible
@@ -109,10 +109,10 @@ def transcribe(args, rank, world_size):
     for i in range(rank, len(dataset), world_size):
         waveform, name = dataset[i]
         encoded = speech_encoder(waveform)
-
+        # print(encoded.keys())
         stream_names = ["units", "durations"]
         if args.f0s:
-            stream_names += ["f0s"]
+            stream_names += ["f0"]
 
         for stream_name in stream_names:
             stream = encoded[stream_name]
@@ -162,4 +162,6 @@ def merge_files(full_output, suffix, n_workers):
 
 if __name__ == "__main__":
     args = get_args()
+    start=time.time()
     main(args)
+    print('total time taken: ',time.time()-start)
